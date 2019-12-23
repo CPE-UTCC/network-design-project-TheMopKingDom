@@ -1,0 +1,47 @@
+conf t
+int f0/1
+no sw
+ip addr 172.16.0.2 255.255.255.252
+no sh
+ip route 0.0.0.0 0.0.0.0 f0/1
+end
+copy ru st
+
+conf t
+int f0/1
+no sw
+ip addr 172.16.1.2 255.255.255.252
+no sh
+ip route 0.0.0.0 0.0.0.0 f0/1
+end
+copy ru st
+
+conf t
+int g0/0
+ip addr 172.16.0.1 255.255.255.252
+ip nat inside
+no sh
+int g0/1
+ip addr 172.16.1.1 255.255.255.252
+ip nat inside
+no sh
+int s0/0/0
+ip nat outside
+exit
+
+ip route 0.0.0.0 0.0.0.0 Serial0/0/0 
+ip route 192.168.0.0 255.255.255.192 GigabitEthernet0/0 
+ip route 192.168.0.64 255.255.255.192 GigabitEthernet0/0 
+ip route 192.168.0.128 255.255.255.192 GigabitEthernet0/0 
+ip route 192.168.0.192 255.255.255.192 GigabitEthernet0/0
+ip route 192.168.1.0 255.255.255.192 g0/0
+ip route 192.168.1.64 255.255.255.192 g0/0
+
+access-list 10 permit 192.168.0.0 0.0.0.63
+access-list 10 permit 192.168.0.64 0.0.0.63
+access-list 10 permit 192.168.0.128 0.0.0.63
+access-list 10 permit 192.168.0.192 0.0.0.63
+access-list 10 permit 192.168.1.0 0.0.0.63
+access-list 10 permit 192.168.1.64 0.0.0.63
+ip nat inside source list 10 interface Serial0/0/0 overload
+

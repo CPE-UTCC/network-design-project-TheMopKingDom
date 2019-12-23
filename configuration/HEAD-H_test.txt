@@ -1,0 +1,195 @@
+en
+conf t
+service password-encryption 
+no ip domain-lookup
+enable secret class
+line con 0
+logg syn
+password cisco
+login
+line vty 0 15
+exit
+host
+
+int ra f0/1-24,g0/1-2
+sh
+exit
+
+int ra f0/1-7
+switchport trunk encapsulation dot1Q
+switchport mode trunk
+no sh
+exit
+
+int ra f0/23-24
+switchport mode trunk
+exit
+
+vlan 10
+name room-1
+vlan 20
+name room-2
+vlan 30
+name room-3
+vlan 40
+name room-4
+exit
+vtp mode server
+vtp version 2
+vtp domain Cisco
+vtp password 12345
+
+vtp mode client
+vtp domain Cisco
+vtp password 12345
+
+
+int ra f0/1-9
+sw acc vlan 10
+int ra f0/10-20
+sw acc vlan 20
+int ra f0/21-22
+sw mo tr
+exit
+
+int ra f0/1-9
+sw acc vlan 30
+int ra f0/10-20
+sw acc vlan 40
+int ra f0/21-22
+sw mo tr
+exit
+
+int ra f0/2-3
+channel-group 1 mode desirable
+interface port-channel 1
+switchport trunk encapsulation dot1q
+switchport mode trunk
+exit
+
+spanning-tree vlan 10 root primary
+spanning-tree vlan 20 root primary
+spanning-tree vlan 30 root secondary
+spanning-tree vlan 40 root secondary
+
+spanning-tree vlan 10 root secondary
+spanning-tree vlan 20 root secondary
+spanning-tree vlan 30 root primary
+spanning-tree vlan 40 root primary
+
+int ra f0/1-20
+spanning-tree portfast
+spanning-tree bpduguard enable
+exit
+
+int vlan 10
+ip add 192.168.0.1 255.255.255.128
+no sh
+int vlan 20
+ip add 192.168.0.129 255.255.255.128
+no sh
+int vlan 30
+ip add 192.168.1.1 255.255.255.0
+no sh
+int vlan 40
+ip add 192.168.2.1 255.255.255.0
+no sh
+exit
+ip routing
+
+int vlan 10
+ip add 192.168.0.2 255.255.255.128
+no sh
+int vlan 20
+ip add 192.168.0.130 255.255.255.128
+no sh
+int vlan 30
+ip add 192.168.1.2 255.255.255.0
+no sh
+int vlan 40
+ip add 192.168.2.2 255.255.255.0
+no sh
+exit
+ip routing
+
+int vlan 10
+standby 10 ip 192.168.0.3
+standby 10 priority 200
+standby 10 preempt
+int vlan 20
+standby 20 ip 192.168.0.131
+standby 20 priority 150
+int vlan 30
+standby 30 ip 192.168.1.3
+standby 30 priority 200
+standby 30 preempt
+int vlan 40
+standby 40 ip 192.168.2.3
+standby 40 priority 150
+exit
+
+int vlan 10
+standby 10 ip 192.168.0.3
+standby 10 priority 150
+int vlan 20
+standby 20 ip 192.168.0.131
+standby 20 priority 200
+standby 20 preempt
+int vlan 30
+standby 30 ip 192.168.1.3
+standby 30 priority 150
+int vlan 40
+standby 40 ip 192.168.2.3
+standby 40 priority 200
+standby 40 preempt
+exit
+
+ip dhcp excluded-address 192.168.0.1 192.168.0.5
+ip dhcp excluded-address 192.168.0.129 192.168.0.133
+ip dhcp excluded-address 192.168.1.1 192.168.1.5
+ip dhcp excluded-address 192.168.2.1 192.168.2.5
+
+ip dhcp pool room-1
+network 192.168.0.0 255.255.255.128
+default-router 192.168.0.3
+ip dhcp pool room-2
+network 192.168.0.128 255.255.255.128
+default-router 192.168.0.131
+ip dhcp pool room-3
+network 192.168.1.0 255.255.255.0
+default-router 192.168.1.3
+ip dhcp pool room-4
+network 192.168.2.0 255.255.255.0
+default-router 192.168.2.3
+
+__________________NAT-Test___________________
+int vlan 10
+standby 10 ip 192.168.0.3 [ชื่อ group หลัง standby ต้องเหมือนกัน][ip router]
+standby 10 priority 150 [มากกว่าจะเป็นตัวหลัก]
+standby 10 preempt [เป็นตัวหลัก หากเจอตัวรองที่ priority ต่ำกว่า ตัวเอง จะเอาตัวเองมาแทนที่]
+
+show standby br
+
+int f0/1
+no swit
+ip addr 192.168.1.1 255.255.255.0
+no sh
+
+ip route 0.0.0.0 0.0.0.0 f0/1
+
+ip routing
+router ospf 1
+net
+
+int g0/1 [ขาเข้าจากใน]
+ip nat insi
+
+int g0/0 [ขาออกไปนอก]
+ip nat outside
+
+access-list 1 permi 192.168.10.0 0.0.0.255
+access-list 1 permi 192.168.20.0 0.0.0.255
+
+ip nat inside source list 1 int s0/0/0 overload
+
+show ip nat tr
